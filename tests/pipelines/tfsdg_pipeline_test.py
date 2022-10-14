@@ -86,8 +86,12 @@ def _compare_generated_images(img1: Image.Image, img2: Image.Image) -> None:
 
 def test_cross_attention(model_name: str):
 
-    proposed_pipe = TFSDGPipeline.from_pretrained(model_name)
-    original_pipe = StableDiffusionPipeline.from_pretrained(model_name)
+    proposed_pipe = TFSDGPipeline.from_pretrained(
+        model_name, revision="fp16", torch_dtype=torch.float16
+    )
+    original_pipe = StableDiffusionPipeline.from_pretrained(
+        model_name, revision="fp16", torch_dtype=torch.float16
+    )
 
     _compare_cross_attention(
         proposed_module=proposed_pipe.unet,
