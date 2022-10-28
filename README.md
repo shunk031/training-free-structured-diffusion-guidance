@@ -2,6 +2,7 @@
 
 [![ICLR 2023 OpenReview](http://img.shields.io/badge/ICLR%202023-under%20review-B31B1B.svg)](https://openreview.net/forum?id=PUIqjT4rzq7)
 [![CI](https://github.com/shunk031/training-free-structured-diffusion-guidance/actions/workflows/ci.yaml/badge.svg)](https://github.com/shunk031/training-free-structured-diffusion-guidance/actions/workflows/ci.yaml)
+![Python](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue?logo=python)
 
 Unofficial [🤗 huggingface/diffusers](https://github.com/huggingface/diffusers)-based implementation of the paper *Training-Free Structured Diffusion Guidance for Compositional Text-to-Image Synthesis*. We refer to the author's original implementation as [supplemented in the OpenReview](https://openreview.net/attachment?id=PUIqjT4rzq7&name=supplementary_material).
 There is no direct relationship between this implementation and the author.
