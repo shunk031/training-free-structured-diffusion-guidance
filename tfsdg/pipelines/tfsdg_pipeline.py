@@ -333,13 +333,6 @@ class TFSDGPipeline(StableDiffusionPipeline):
         do_classifier_free_guidance = guidance_scale > 1.0
         # get unconditional embeddings for classifier free guidance
         if do_classifier_free_guidance:
-            # max_length = text_input.input_ids.shape[-1]
-            # uncond_input = self.tokenizer(
-            #     [""] * batch_size,
-            #     padding="max_length",
-            #     max_length=self.model_max_length,
-            #     return_tensors="pt",
-            # )
             uncond_input = self.tokenize([""] * batch_size)
             uncond_embeddings = self.text_encoder(
                 uncond_input.input_ids.to(self.device)
@@ -349,8 +342,15 @@ class TFSDGPipeline(StableDiffusionPipeline):
             # Here we concatenate the unconditional and text embeddings into a single batch
             # to avoid doing two forward passes
             if struct_attention == "align_seq":
+                # shape (uncond_embeddings): (1, model_max_length, hidden_dim)
+                # shape (cond_embeddings):
+                # KeyValueTensors.v (num_nps, model_max_length, hidden_dim)
+                # KeyValueTensors.k (num_nps, model_max_length, hidden_dim)
                 text_embeddings = (uncond_embeddings, cond_embeddings)
             else:
+                # shape (uncond_embeddings): (1, model_max_length, hidden_dim)
+                # shape (cond_embeddings): (num_nps, model_max_length, hidden_dim)
+                # shape: (1 + num_nps, model_max_length, hidden_dim)
                 text_embeddings = torch.cat([uncond_embeddings, cond_embeddings])
 
         # get the initial random noise unless the user supplied it
