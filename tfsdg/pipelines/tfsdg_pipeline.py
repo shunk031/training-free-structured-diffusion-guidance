@@ -246,22 +246,21 @@ class TFSDGPipeline(StableDiffusionPipeline):
         c = enc_output.last_hidden_state
 
         # shape: (num_nps, model_max_length, hidden_dim)
-        k_c = torch.stack(
-            [c[0]]
-            + [
-                self._align_sequence(c[0].clone(), seq, span, nps_length[0] + 1)
-                for seq, span in zip(c[1:], spans[1:])
-            ]
-        )
+        k_c = [c[0]] + [
+            self._align_sequence(c[0].clone(), seq, span, nps_length[0] + 1)
+            for seq, span in zip(c[1:], spans[1:])
+        ]
+
         # shape: (num_nps, model_max_length, hidden_dim)
-        v_c = torch.stack(
-            [c[0]]
-            + [
-                self._align_sequence(c[0].clone(), seq, span, nps_length[0] + 1)
-                for seq, span in zip(c[1:], spans[1:])
-            ]
+        v_c = [c[0]] + [
+            self._align_sequence(c[0].clone(), seq, span, nps_length[0] + 1)
+            for seq, span in zip(c[1:], spans[1:])
+        ]
+
+        return KeyValueTensors(
+            k=[k.unsqueeze(dim=0) for k in k_c],
+            v=[v.unsqueeze(dim=0) for v in v_c],
         )
-        return KeyValueTensors(k=k_c, v=v_c)
 
     def apply_text_encoder(
         self,
@@ -296,6 +295,7 @@ class TFSDGPipeline(StableDiffusionPipeline):
         num_inference_steps: int = 50,
         guidance_scale: float = 7.5,
         eta: float = 0.0,
+        num_images_per_sample: int = 1,
         generator: Optional[torch.Generator] = None,
         latents: Optional[torch.FloatTensor] = None,
         output_type: str = "pil",
@@ -305,7 +305,7 @@ class TFSDGPipeline(StableDiffusionPipeline):
     ) -> StableDiffusionPipelineOutput:
 
         if isinstance(prompt, str):
-            batch_size = 1
+            batch_size = num_images_per_sample
         else:
             raise ValueError(f"`prompt` has to be of type `str` but is {type(prompt)}")
 
@@ -320,6 +320,7 @@ class TFSDGPipeline(StableDiffusionPipeline):
         tree = Tree.fromstring(str(doc.sentences[0].constituency))
 
         all_nps = self.get_all_nps(tree=tree, full_sent=preprocessed_prompt)
+
         cond_embeddings = self.apply_text_encoder(
             struct_attention=struct_attention,
             prompt=preprocessed_prompt,
@@ -342,15 +343,19 @@ class TFSDGPipeline(StableDiffusionPipeline):
             # Here we concatenate the unconditional and text embeddings into a single batch
             # to avoid doing two forward passes
             if struct_attention == "align_seq":
-                # shape (uncond_embeddings): (1, model_max_length, hidden_dim)
+                # shape (uncond_embeddings): (batch_size, model_max_length, hidden_dim)
+                assert len(uncond_embeddings.size()) == 3
+                assert uncond_embeddings.size(dim=0) == batch_size
+
                 # shape (cond_embeddings):
-                # KeyValueTensors.v (num_nps, model_max_length, hidden_dim)
-                # KeyValueTensors.k (num_nps, model_max_length, hidden_dim)
+                # KeyValueTensors.k List[(1, num_nps, model_max_length, hidden_dim)]
+                # KeyValueTensors.v List[(1, num_nps, model_max_length, hidden_dim)]
                 text_embeddings = (uncond_embeddings, cond_embeddings)
             else:
-                # shape (uncond_embeddings): (1, model_max_length, hidden_dim)
-                # shape (cond_embeddings): (num_nps, model_max_length, hidden_dim)
-                # shape: (1 + num_nps, model_max_length, hidden_dim)
+                # shape (uncond_embeddings): (batch_size, model_max_length, hidden_dim)
+                # shape (cond_embeddings): (batch_size, num_nps, model_max_length, hidden_dim)
+                # shape: (batch_size, 1 + num_nps, model_max_length, hidden_dim)
+                breakpoint()
                 text_embeddings = torch.cat([uncond_embeddings, cond_embeddings])
 
         # get the initial random noise unless the user supplied it

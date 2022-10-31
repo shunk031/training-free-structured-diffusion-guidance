@@ -1,9 +1,10 @@
 from dataclasses import dataclass
+from typing import List, Union
 
 import torch
 
 
 @dataclass
 class KeyValueTensors(object):
-    k: torch.Tensor
-    v: torch.Tensor
+    k: Union[torch.Tensor, List[torch.Tensor]]
+    v: Union[torch.Tensor, List[torch.Tensor]]
