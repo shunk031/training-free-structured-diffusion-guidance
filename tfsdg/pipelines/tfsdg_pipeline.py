@@ -355,7 +355,6 @@ class TFSDGPipeline(StableDiffusionPipeline):
                 # shape (uncond_embeddings): (batch_size, model_max_length, hidden_dim)
                 # shape (cond_embeddings): (batch_size, num_nps, model_max_length, hidden_dim)
                 # shape: (batch_size, 1 + num_nps, model_max_length, hidden_dim)
-                breakpoint()
                 text_embeddings = torch.cat([uncond_embeddings, cond_embeddings])
 
         # get the initial random noise unless the user supplied it
