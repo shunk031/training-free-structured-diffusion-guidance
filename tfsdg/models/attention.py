@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import torch as th
 from diffusers.models.attention import CrossAttention
@@ -53,16 +53,51 @@ class StructuredCrossAttention(CrossAttention):
         self,
         q: th.Tensor,
         uc_context: th.Tensor,
-        context_k: th.Tensor,
-        context_v: th.Tensor,
+        context_k: List[th.Tensor],
+        context_v: List[th.Tensor],
         mask: Optional[th.Tensor] = None,
-    ) -> None:
-        assert uc_context.size(0) == context_k.size(0) == context_v.size(0)
+    ) -> th.Tensor:
 
-        # true_bs = uc_context.size(0) * self.heads
-        # kv_tensors = self.get_kv(uc_context)
+        assert uc_context.size(0) == context_k[0].size(0) == context_v[0].size(0)
 
-        raise NotImplementedError
+        batch_size, sequence_length, dim = q.shape
+        true_bs = uc_context.size(0) * self.heads
+
+        kv_uc = self.get_kv(context=uc_context)
+        k_c = [self.to_k(c_k) for c_k in context_k]
+        v_c = [self.to_v(c_v) for c_v in context_v]
+
+        q = self.reshape_heads_to_batch_dim(q)
+        kv_uc = KeyValueTensors(
+            k=self.reshape_heads_to_batch_dim(kv_uc.k),
+            v=self.reshape_heads_to_batch_dim(kv_uc.v),
+        )
+        k_c = [self.reshape_heads_to_batch_dim(k) for k in k_c]
+        v_c = [self.reshape_heads_to_batch_dim(v) for v in v_c]
+
+        out_uc = self._attention(
+            query=q[:true_bs],
+            key=kv_uc.k,
+            value=kv_uc.v,
+            sequence_length=sequence_length,
+            dim=dim,
+        )
+
+        assert len(k_c) == len(v_c)
+        out_c_collect = [
+            self._attention(
+                query=q[true_bs:],
+                key=k,
+                value=v,
+                sequence_length=sequence_length,
+                dim=dim,
+            )
+            for k, v in zip(k_c, v_c)
+        ]
+        out_c = sum(out_c_collect) / len(v_c)
+        out = th.cat((out_uc, out_c), dim=0)
+
+        return out
 
     def normal_qkv(
         self,
@@ -111,12 +146,16 @@ class StructuredCrossAttention(CrossAttention):
 
     def forward(
         self,
-        x: th.Tensor,
+        x: th.Tensor,  # 2D feature map (X^t)
         context: Optional[Tuple[th.Tensor, KeyValueTensors]] = None,
         mask: Optional[th.Tensor] = None,
     ) -> th.Tensor:
 
-        q = self.to_q(x)
+        # The 2D feature map $$X^t$$ is projected into q query tensor by a linear layer $$f_Q(\cdot)$$
+        # and reshaped as $$Q^t \in \mathcal{R}^{n, h \times w, d}$$
+        # shape (x): (num_attn_heads, h_latent, w_latent, feat_dim)
+        # shape (q): (num_attn_heads, h_latent, w_latent, feat_dim)
+        q = self.to_q(x)  # Q^t <- f_Q(X^t)
 
         if isinstance(context, tuple):
             assert len(context) == 2
