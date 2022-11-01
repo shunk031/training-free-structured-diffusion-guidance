@@ -10,7 +10,7 @@ packages = [{include = "tfsdg"}]
 python = "^3.8"
 torch = "^1.12.1"
 torchvision = "^0.13.1"
-diffusers = "^0.3.0"
+diffusers = ">=0.6.0,<0.7.0"
 transformers = "^4.22.2"
 accelerate = "^0.12.0"
 nltk = "^3.7"
