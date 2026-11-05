@@ -1,5 +1,12 @@
 # Training-free Structured Diffusion Guidance for Compositional Text-to-Image Synthesis
 
+> [!IMPORTANT]
+> This repository is archived and no longer maintained. Its implementation had known bugs.
+> Use the maintained port instead:
+>
+> - Code: the [`structure-diffusion`](https://github.com/creative-graphic-design/design-generators/tree/main/models/structure-diffusion) package in [creative-graphic-design/design-generators](https://github.com/creative-graphic-design/design-generators). It is checked against the [original implementation](https://github.com/weixi-feng/structured-diffusion-guidance) and runs on current `diffusers`.
+> - Hugging Face Hub: [creative-graphic-design/structure-diffusion](https://huggingface.co/creative-graphic-design/structure-diffusion).
+
 [![ICLR 2023 OpenReview](http://img.shields.io/badge/ICLR%202023-under%20review-B31B1B.svg)](https://openreview.net/forum?id=PUIqjT4rzq7)
 [![CI](https://github.com/shunk031/training-free-structured-diffusion-guidance/actions/workflows/ci.yaml/badge.svg)](https://github.com/shunk031/training-free-structured-diffusion-guidance/actions/workflows/ci.yaml)
 ![Python](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue?logo=python)
